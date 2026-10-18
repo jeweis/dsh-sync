@@ -1,6 +1,6 @@
 {
   "name": "@jeweis/dsh-sync",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Cross-device sync, encrypted backups and offline recovery for DeepSeek Harness",
   "type": "module",
   "license": "MIT",
@@ -40,7 +40,8 @@
     "prepack": "npm run build",
     "preview:ui": "npm run build && node scripts/preview-ui.mjs",
     "preview:sync": "npm run build && node scripts/preview-sync.mjs",
-    "preview:provider": "npm run build && node scripts/preview-provider.mjs"
+    "preview:provider": "npm run build && node scripts/preview-provider.mjs",
+    "prepare": "npm run build"
   },
   "dsh": {
     "bundle": {

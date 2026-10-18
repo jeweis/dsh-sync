@@ -19,3 +19,5 @@
 - The user-authorized optional atomic credentials provider may resume automatic reference receiving only through its explicit CAS capability, with manual set/unset and sync CAS sharing the Harness modifyRecord transaction. Never enable or replace a provider in a real profile automatically. All writers of managed references must use this provider; ordinary providers remain manual.
 
 - User-authorized provider onboarding is read-only in the settings page. Provider/profile/credential migration writes are offline CLI-only, requiring a fresh keyed plan token plus --offline and --all-writers-stopped. Share the snapshot restore lock. Rollback preserves current managed Key values/unset semantics via Harness credential APIs, never just re-enables stale legacy keys. Keep journals encrypted, receipts and DTOs free of secrets, and block unsupported/dynamic/shared-external storage layouts.
+
+- README is user-facing: prioritize Harness Add Plugin instructions (npm/GitHub) and Settings → 同步与备份. Keep implementation and acceptance details in docs/. Maintain the token-free OIDC release flow documented in docs/publishing.md.

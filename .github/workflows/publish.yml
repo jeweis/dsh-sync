@@ -58,6 +58,3 @@ jobs:
       - name: Publish new version
         if: steps.version.outputs.publish == 'true'
         run: npm publish --access public --provenance
-        env:
-          # Optional bootstrap credential. With a configured npm trusted publisher, OIDC is used.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
