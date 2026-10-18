@@ -9,9 +9,12 @@ import { retentionStatus } from './retention.mjs'
 import { resolve } from 'node:path'
 import { providerPreview } from './provider-transition.mjs'
 import { LiveSync } from './sync.mjs'
+import { recoveryPreview, stageRecovery, sourceProfiles, registryVersion } from './recovery-guide.mjs'
+import { randomUUID } from 'node:crypto'
 
 export class VaultSettingsService {
-  constructor({ home, credentials, defaults = {}, environment = process.env, syncAdapter = null, profile = 'web', providerContext = null }) {
+  constructor({ home, credentials, defaults = {}, environment = process.env, syncAdapter = null, profile = 'web', providerContext = null, pluginManager = null }) {
+    this.pluginManager = pluginManager; this.packagePlan = null
     this.providerContext = providerContext
     this.home = home; this.credentials = credentials; this.defaults = defaults; this.environment = environment
     this.busy = false; this.abort = new AbortController(); this.active = null
@@ -30,7 +33,7 @@ export class VaultSettingsService {
     const phase = !preferences.config.autoBackup?.enabled ? 'disabled' : preferences.config.encryption !== false && (!ready || ready.length < 12 || ready.length > 1024) ? 'locked' : this.auto.status.phase === 'disabled' ? 'watching' : this.auto.status.phase
     const retention = await retentionStatus(this.home, preferences.config.url ? new WebDAV(preferences.config) : null)
     const syncPhase = !preferences.config.sync?.enabled ? 'disabled' : !this.sync.adapter?.available() ? 'unavailable' : !(this.syncPassphrase ?? this.environment.DSH_VAULT_PASSPHRASE) ? 'locked' : this.sync.status.phase === 'disabled' ? 'ready' : this.sync.status.phase
-    return { ...preferences, profiles, passwordConfigured: info.configured, passwordWritable: info.writable, busy: this.busy, auto: { ...this.auto.status, phase }, retention, sync: { ...this.sync.status, phase: syncPhase, referenceMode: this.sync.adapter?.referenceMode?.() ?? 'manual' } }
+    return { ...preferences, profiles, recovery: { profile: this.sync.profile, canInstall: Boolean(this.pluginManager) }, passwordConfigured: info.configured, passwordWritable: info.writable, busy: this.busy, auto: { ...this.auto.status, phase }, retention, sync: { ...this.sync.status, phase: syncPhase, referenceMode: this.sync.adapter?.referenceMode?.() ?? 'manual' } }
   }
 
   /** Credentials are resolved once for this operation and never included in returned DTOs. */
@@ -42,6 +45,10 @@ export class VaultSettingsService {
   async execute(body, signal) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new SettingsError('invalid-request')
     const actions = {
+      'recovery-preview': ['action','revision','id','passphrase','sourceProfile','useInstalled'],
+      'recovery-stage': ['action','revision','id','passphrase','sourceProfile','useInstalled','token'],
+      'recovery-package': ['action','revision','id','passphrase','sourceProfile','useInstalled','name'],
+      'recovery-install': ['action','revision','id','passphrase','sourceProfile','useInstalled','name','token'],
       'provider-preview': ['action','revision','mode','refs'],
       save: ['action', 'revision', 'config', 'password', 'clearPassword'],
       'auto-unlock': ['action', 'revision', 'passphrase'], 'auto-retry': ['action', 'revision'],
@@ -68,6 +75,36 @@ export class VaultSettingsService {
     signal.throwIfAborted()
     const current = await loadPreferences(this.home, this.environment, this.defaults)
     if (body.revision !== current.revision) throw new SettingsError('stale-settings', 409)
+    if (body.action.startsWith('recovery-')) {
+      if (!current.config.url) throw new SettingsError('connection-required')
+      if (typeof body.passphrase !== 'string' || body.passphrase.length < 12 || body.passphrase.length > 1024) throw new SettingsError('passphrase-required')
+      if (body.useInstalled !== undefined && typeof body.useInstalled !== 'boolean') throw new SettingsError('invalid-request')
+      try { validateId(body.id) } catch { throw new SettingsError('invalid-snapshot') }
+      const snapshot = await download({ id: body.id, remote: await this.connection(current.config), passphrase: body.passphrase, signal, allowUnencrypted: current.config.encryption === false })
+      const profiles = sourceProfiles(snapshot)
+      const options = { home: this.home, sourceProfile: body.sourceProfile ?? (profiles.includes(this.sync.profile) ? this.sync.profile : profiles[0]), targetProfile: this.sync.profile, useInstalled: body.useInstalled ?? false }
+      let result
+      try { result = await recoveryPreview(snapshot, options) } catch { throw new SettingsError('recovery-invalid') }
+      if (body.action === 'recovery-preview') return { recoveryPlan: result.plan }
+      if (body.action === 'recovery-stage') {
+        try { return { recoveryStage: await stageRecovery(snapshot, { ...options, token: body.token, passphrase: body.passphrase }) } }
+        catch { throw new SettingsError('recovery-stale', 409) }
+      }
+      if (!this.pluginManager || !result.plan.packages.some(p => p.name === body.name)) throw new SettingsError('invalid-request')
+      if (body.action === 'recovery-package') {
+        const pkg = result.plan.packages.find(p => p.name === body.name)
+        const inspection = await this.pluginManager.inspect(pkg.requested ? `${pkg.name}@${pkg.requested}` : pkg.name)
+        if (inspection.status !== 'accepted' || inspection.name !== pkg.name || !inspection.bundle || !registryVersion(inspection.version) || !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(inspection.version)) throw new SettingsError('recovery-package-unavailable')
+        this.packagePlan = { name: pkg.name, version: inspection.version, token: randomUUID(), planToken: result.plan.token, id: body.id }
+        return { recoveryPackage: { name: pkg.name, version: inspection.version, token: this.packagePlan.token } }
+      }
+      const proposed = this.packagePlan
+      if (!proposed || proposed.name !== body.name || proposed.id !== body.id || proposed.token !== body.token || proposed.planToken !== result.plan.token) throw new SettingsError('recovery-stale', 409)
+      this.packagePlan = null
+      const installed = await this.pluginManager.installBundle(`${proposed.name}@${proposed.version}`, { enabled: false, saveExact: true })
+      if (installed.error || installed.application === 'failed' || installed.application === 'cancelled') throw new SettingsError('recovery-install-failed')
+      return { recoveryPlan: (await recoveryPreview(snapshot, { ...options, useInstalled: true })).plan }
+    }
     if (body.action === 'provider-preview') {
       if (!['enable','rollback'].includes(body.mode) || (body.refs !== undefined && (!Array.isArray(body.refs) || body.refs.length>128 || !body.refs.every(x=>typeof x==='string'&&x.length<=128)))) throw new SettingsError('invalid-request')
       const validLocation=!this.providerContext?.dir || resolve(this.providerContext.dir)===resolve(this.home,'profiles',this.providerContext.name??'')

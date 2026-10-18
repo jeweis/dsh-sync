@@ -1,6 +1,6 @@
 {
   "name": "@jeweis/dsh-sync",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Cross-device sync, encrypted backups and offline recovery for DeepSeek Harness",
   "type": "module",
   "license": "MIT",
@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/operation-error.mjs && node --check src/auto-backup.mjs && node --check src/retention.mjs && node --check src/engine.mjs && node --check src/restore.mjs && node --check src/snapshot.mjs && node --check src/webdav.mjs && node --check src/crypto.mjs && node --check src/files.mjs && node --check src/settings.mjs && node --check src/ui-service.mjs && node --check scripts/build.mjs && node --check lib/client.js && node --check src/sync-credentials.mjs && node --check src/sync.mjs && node --check src/sync-adapter.mjs && node --check src/sync-remote.mjs && node --check src/sync-lock.mjs && node --check src/client/sync-view.cjs && node --check scripts/acceptance/sync.mjs && node --check scripts/preview-sync.mjs && node --check src/credential-cas.mjs && node --check src/atomic-credentials.mjs && node --check src/provider-transition.mjs && node --check src/client/provider-view.cjs && node --check scripts/acceptance/provider-switch.mjs && node --check scripts/preview-provider.mjs && node --check scripts/publish-check.mjs",
+    "check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/operation-error.mjs && node --check src/auto-backup.mjs && node --check src/retention.mjs && node --check src/engine.mjs && node --check src/restore.mjs && node --check src/snapshot.mjs && node --check src/webdav.mjs && node --check src/crypto.mjs && node --check src/files.mjs && node --check src/settings.mjs && node --check src/ui-service.mjs && node --check scripts/build.mjs && node --check lib/client.js && node --check src/sync-credentials.mjs && node --check src/sync.mjs && node --check src/sync-adapter.mjs && node --check src/sync-remote.mjs && node --check src/sync-lock.mjs && node --check src/client/sync-view.cjs && node --check scripts/acceptance/sync.mjs && node --check scripts/preview-sync.mjs && node --check src/credential-cas.mjs && node --check src/atomic-credentials.mjs && node --check src/provider-transition.mjs && node --check src/client/provider-view.cjs && node --check scripts/acceptance/provider-switch.mjs && node --check scripts/preview-provider.mjs && node --check scripts/publish-check.mjs && node --check src/recovery-guide.mjs && node --check src/recovery-terminal.mjs && node --check src/client/recovery-view.cjs",
     "build": "node scripts/build.mjs",
     "pretest": "npm run build",
     "prepack": "npm run build",

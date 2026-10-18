@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-18",
+  "package": "@jeweis/dsh-sync",
+  "version": "0.11.0",
+  "published": false,
+  "automated": {
+    "tests": 133,
+    "syntaxCheck": true,
+    "packDryRun": true
+  },
+  "actualHarness": {
+    "runtime": "0.2.1-rc.2",
+    "devices": 2,
+    "oldDeviceBooted": true,
+    "oldBackupEncryptedAndVerified": true,
+    "oldLocalDependencyReplacedWithInstalled": true,
+    "profileMapping": "old-device → web",
+    "stageEncrypted": true,
+    "offlineTerminalPassphraseHidden": true,
+    "offlineConfirmation": true,
+    "restoredPatchMatches": true,
+    "rollbackRetained": true,
+    "requestConsumed": true,
+    "noActiveJournalOrLock": true,
+    "requestsBeforeOffline": 10,
+    "requestsAfterOffline": 10,
+    "restarted": true,
+    "restoredLocaleVisible": "en",
+    "finalCandidateReinstalled": true,
+    "settingsOpenAfterRestart": true,
+    "copyCommandConfirmed": true,
+    "ordinaryReferenceKeysRemainManual": true,
+    "twoDeviceLiveSync": true
+  },
+  "client": {
+    "sha256": "773f0373cf5420fafd75b27f2b722ac55b375aa84bc5cb9fbb27bf8776b7c971"
+  },
+  "boundaries": {
+    "realProfileTouched": false,
+    "harnessSourceModified": false,
+    "externalWebdavContacted": false,
+    "realProviderKeysUsed": false,
+    "missingPluginInstallation": "Harness API contract exercised with a controlled test double; real browser case reused installed plugin",
+    "platform": "macOS; PowerShell command quoting rendered but not executed",
+    "upstreamHead": "1517a4dbca",
+    "upstreamStatus": "clean"
+  },
+  "cleanupCompleted": true
+}

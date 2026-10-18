@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 const {name} = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-const modules = ['controller', 'locales', 'sync-view', 'provider-view', 'view', 'index']
+const modules = ['controller', 'locales', 'sync-view', 'provider-view', 'recovery-view', 'view', 'index']
 const factories = []
 // Embed the same packaged artwork so the settings page needs no asset request.
 const icon = await readFile(new URL('../assets/icon.svg', import.meta.url))

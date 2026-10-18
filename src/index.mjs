@@ -50,7 +50,7 @@ export function apply(ctx, input) {
   ctx.inject(['credentials', 'profileContext'], child => {
     const profile = child.profileContext.name
     const syncAdapter = new HarnessSyncAdapter({ home: child.profileContext.home, profile, getContext: () => child })
-    const service = new VaultSettingsService({ home: child.profileContext.home, credentials: child.credentials, defaults: config, profile, syncAdapter, providerContext: child.profileContext })
+    const service = new VaultSettingsService({ home: child.profileContext.home, credentials: child.credentials, defaults: config, profile, syncAdapter, providerContext: child.profileContext, pluginManager: child.get('pluginManager') })
     settingsService = service
     service.startAuto()
     child.effect(() => () => { if (settingsService === service) settingsService = undefined; return service.dispose() })

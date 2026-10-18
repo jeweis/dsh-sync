@@ -7,8 +7,9 @@ import { backup, download, preview, restore, recover, transportFromEnvironment, 
 import { RUNTIME } from './snapshot.mjs'
 import { providerTransition, ProviderTransitionError } from './provider-transition.mjs'
 import { loadPreferences } from './settings.mjs'
+import { recoveryTerminal } from './recovery-terminal.mjs'
 
-const help = `dsh-sync <backup|list|preview|restore|recover|provider-preview|provider-switch> [options]
+const help = `dsh-sync <backup|list|preview|restore|recover|provider-preview|provider-switch|finish-restore> [options]
   --home PATH              Explicit source/target Harness home
   --profiles web,headless   Backup profile selection (default: web)
   --include-home-patch      Include machine-wide cordis.patch.yml (default: false)
@@ -22,12 +23,15 @@ const help = `dsh-sync <backup|list|preview|restore|recover|provider-preview|pro
   --install-anchor PATH     Existing DSH package-resolution anchor (provider commands)
   --refs REF,REF            Explicit provider references (default: discovered refs)
   --all-writers-stopped     Assert every writer sharing this credential store is stopped
+  --request ID              Encrypted locally staged recovery (finish-restore only)
   --rollback ID             Retained rollback transaction (recover only)
 Environment: DSH_VAULT_WEBDAV_URL, DSH_VAULT_WEBDAV_USERNAME,
 DSH_VAULT_WEBDAV_PASSWORD, DSH_VAULT_PASSPHRASE (12+ characters).
 With --home, saved non-secret connection preferences are loaded from that home.
 The offline CLI reads secrets from the environment. Plaintext backup/preview need
 no passphrase; confirmed restore/recover always need one for encrypted journals.
+finish-restore prompts for the passphrase and confirmation in a terminal; it needs
+--home, --request and --offline. No copied plan token or WebDAV password is needed.
 No dependencies are installed, scripts executed or live profiles reloaded by this CLI.
 Restore without --confirm only previews. recover without --confirm only previews.
 Provider preview/switch require DSH_VAULT_PASSPHRASE for encrypted journals.
@@ -38,15 +42,19 @@ returning to the original provider, and can recover interrupted transitions.`
 export async function main(argv = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     mode:{type:'string'},'install-anchor':{type:'string'},refs:{type:'string'},'all-writers-stopped':{type:'boolean',default:false},
-    home: { type: 'string' }, profiles: { type: 'string' }, id: { type: 'string' }, confirm: { type: 'string' }, rollback: { type: 'string' },
+    request: { type: 'string' }, home: { type: 'string' }, profiles: { type: 'string' }, id: { type: 'string' }, confirm: { type: 'string' }, rollback: { type: 'string' },
     'runtime-version': { type: 'string' }, 'include-home-patch': { type: 'boolean', default: false }, offline: { type: 'boolean', default: false }, help: { type: 'boolean' }, unencrypted: { type: 'boolean', default: false }, 'keep-last': { type: 'string' },
   } })
   if (values.help) return { help }
   const command = positionals[0]
   if (values['keep-last'] !== undefined && (!/^[1-9]\d{0,4}$/.test(values['keep-last']) || Number(values['keep-last']) > 10000 || command !== 'backup')) throw new Error('--keep-last must be 1–10000 and is only valid for backup')
-  if (positionals.length !== 1 || !['backup', 'list', 'preview', 'restore', 'recover', 'provider-preview', 'provider-switch'].includes(command)) throw new Error(help)
+  if (positionals.length !== 1 || !['backup', 'list', 'preview', 'restore', 'recover', 'provider-preview', 'provider-switch', 'finish-restore'].includes(command)) throw new Error(help)
   if (command !== 'list' && !values.home?.trim()) throw new Error('--home is required; no implicit restore target')
   const home = values.home && resolve(values.home), runtimeVersion = values['runtime-version'] ?? RUNTIME
+  if (command === 'finish-restore') {
+    if (!values.request || values.confirm) throw new Error('finish-restore requires --request and interactive confirmation')
+    return recoveryTerminal({ home, requestId: values.request, offline: values.offline })
+  }
   if (command.startsWith('provider-')) {
     if(!values['install-anchor'] || !['enable','rollback'].includes(values.mode)) throw new Error('provider-invalid-request')
     if(command==='provider-preview' && values.confirm) throw new Error('provider-invalid-request')

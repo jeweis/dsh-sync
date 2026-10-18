@@ -20,8 +20,8 @@ function inspect(path, content) {
     if (value.dependencies !== undefined && (!value.dependencies || typeof value.dependencies !== 'object' || Array.isArray(value.dependencies))) throw new Error('Invalid profile dependencies')
     for (const [name, spec] of Object.entries(value.dependencies ?? {})) {
       if (typeof spec !== 'string') throw new Error('Invalid dependency spec')
-      if (/^(?:link:|file:|workspace:|\/|[A-Za-z]:|\.\.?\/)/.test(spec)) warnings.push({ path, code: 'local-dependency', message: `Local dependency requires manual migration: ${name}` })
-      else if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(spec)) warnings.push({ path, code: 'unpinned-dependency', message: `Dependency is not an exact registry version: ${name}` })
+      if (/^(?:link:|file:|workspace:|\/|[A-Za-z]:|\.\.?\/)/.test(spec)) warnings.push({ path, dependency: name, code: 'local-dependency', message: `Local dependency requires manual migration: ${name}` })
+      else if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(spec)) warnings.push({ path, dependency: name, code: 'unpinned-dependency', message: `Dependency is not an exact registry version: ${name}` })
     }
   } else {
     const doc = parseDocument(content, { customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: value => value }], uniqueKeys: true })

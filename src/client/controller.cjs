@@ -1,7 +1,7 @@
 // Browser controller owns request state. Form secrets stay in component-local inputs only.
 const { createSnapshotStore } = require('@deepseek-ai/dsh-client-store')
 const ID = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_[a-f0-9-]{36}$/
-const errors = new Set(['invalid-settings', 'invalid-webdav', 'stale-settings', 'invalid-password', 'invalid-request', 'credentials-readonly', 'credentials-save-incomplete', 'connection-required', 'passphrase-required', 'invalid-snapshot', 'busy', 'stopping', 'request-too-large', 'operation-failed', 'unsupported-settings'])
+const errors = new Set(['invalid-settings', 'invalid-webdav', 'stale-settings', 'invalid-password', 'invalid-request', 'credentials-readonly', 'credentials-save-incomplete', 'connection-required', 'passphrase-required', 'invalid-snapshot', 'busy', 'stopping', 'request-too-large', 'operation-failed', 'unsupported-settings', 'recovery-invalid', 'recovery-stale', 'recovery-package-unavailable', 'recovery-install-failed'])
 function publicDiagnostic(value) {
   if (!value || !['collect', 'encrypt', 'mkdir', 'upload', 'download', 'verify', 'list', 'cleanup'].includes(value.stage) || !['failed', 'http', 'network', 'tls', 'timeout', 'cancelled', 'size', 'invalid-data'].includes(value.reason)) return null
   return { stage: value.stage, reason: value.reason,
@@ -25,7 +25,7 @@ function validProviderPlan(plan) {
 class Controller {
   constructor(fetcher = (...args) => fetch(...args)) {
     this.fetcher = fetcher; this.abort = new AbortController()
-    this.state = createSnapshotStore({ host: null, busy: false, error: null, diagnostic: null, notice: null, snapshots: null, plan: null, providerPlan:null, backup: null, refreshRevision: 0 })
+    this.state = createSnapshotStore({ host: null, busy: false, error: null, diagnostic: null, notice: null, snapshots: null, plan: null, providerPlan:null, recoveryPlan: null, recoveryStage: null, recoveryPackage: null, discoveryFailed: false, backup: null, refreshRevision: 0 })
   }
   async request(method, body) {
     const response = await this.fetcher(method === 'GET' ? '/api/dsh-config-vault/state' : '/api/dsh-config-vault', { method, credentials: 'same-origin', cache: 'no-store', signal: this.abort.signal,
@@ -54,23 +54,33 @@ class Controller {
   async run(action, payload = {}) {
     const before = this.state.getSnapshot()
     if (before.busy || !before.host || this.abort.signal.aborted) return
-    this.state.update(state => { state.busy = true; state.error = null; state.diagnostic = null; state.notice = null; if (action === 'preview') state.plan = null; if(action==='provider-preview') state.providerPlan=null; if (action === 'backup') { state.backup = null; state.plan = null; state.snapshots = null } })
+    this.state.update(state => { state.busy = true; state.error = null; state.diagnostic = null; state.notice = null; if (action.startsWith('recovery-')) { state.recoveryStage = null; if (action !== 'recovery-install') state.recoveryPackage = null; if (action === 'recovery-preview') state.recoveryPlan = null } if (action === 'preview') state.plan = null; if(action==='provider-preview') state.providerPlan=null; if (action === 'backup') { state.backup = null; state.plan = null; state.snapshots = null } })
     try {
       const value = await this.request('POST', { ...payload, action, revision: before.host.revision })
       if (this.abort.signal.aborted) return
       if ((['save', 'auto-unlock', 'auto-retry'].includes(action) || action.startsWith('sync-')) && !validState(value.state)) throw new Error('operation-failed')
+      if (['recovery-preview', 'recovery-install'].includes(action) && !validPlan(value.recoveryPlan)) throw new Error('operation-failed')
+      if (action === 'recovery-stage' && (!value.recoveryStage || !/^[a-f0-9-]{36}$/.test(value.recoveryStage.requestId) || !['node','cli','home'].every(k=>typeof value.recoveryStage[k]==='string'))) throw new Error('operation-failed')
+      if (action === 'recovery-package' && (!value.recoveryPackage || !['name','version','token'].every(k=>typeof value.recoveryPackage[k]==='string'))) throw new Error('operation-failed')
       if (action === 'test' && value.connected !== true) throw new Error('operation-failed')
       if (action === 'list' && (!Array.isArray(value.snapshots) || !value.snapshots.every(id => typeof id === 'string' && ID.test(id)))) throw new Error('operation-failed')
       if(action==='provider-preview'&&!validProviderPlan(value.providerPlan)) throw new Error('operation-failed')
       if (action === 'preview' && !validPlan(value.plan)) throw new Error('operation-failed')
       if (action === 'backup' && (!value.backup || !ID.test(value.backup.id) || value.backup.verified !== true)) throw new Error('operation-failed')
+      let discovered
+      if (action === 'save' && value.state.config.url) {
+        try { const answer = await this.request('POST', { action: 'list', revision: value.state.revision }); if (!Array.isArray(answer.snapshots) || !answer.snapshots.every(id=>ID.test(id))) throw new Error(); discovered = answer.snapshots } catch { discovered = null }
+      }
       this.state.update(state => {
-        if (action === 'save') { state.host = value.state; state.refreshRevision += 1; state.snapshots = null; state.plan = null; state.backup = null; state.notice = 'saved' }
+        if (action === 'save') { state.host = value.state; state.refreshRevision += 1; state.snapshots = null; state.plan = null; state.backup = null; state.notice = 'saved'; state.snapshots = discovered ?? null; state.discoveryFailed = discovered === null; state.recoveryPlan = null; state.recoveryStage = null; state.recoveryPackage = null }
         if (['auto-unlock', 'auto-retry'].includes(action)) { state.host = value.state; state.notice = 'saved' }
         if (action.startsWith('sync-')) { state.host = value.state; state.notice = null }
+        if (value.recoveryPlan) { state.recoveryPlan = value.recoveryPlan; state.recoveryPackage = null }
+        if (value.recoveryStage) state.recoveryStage = value.recoveryStage
+        if (value.recoveryPackage) state.recoveryPackage = value.recoveryPackage
         if(action==='provider-preview') state.providerPlan=value.providerPlan
         if (action === 'test') state.notice = value.directoryExists === false ? 'connectedMissing' : 'connected'
-        if (action === 'list') { state.snapshots = value.snapshots; state.plan = null }
+        if (action === 'list') { state.snapshots = value.snapshots; state.plan = null; state.discoveryFailed = false }
         if (action === 'preview') state.plan = value.plan
         if (action === 'backup') { state.backup = value.backup; state.snapshots = null; state.plan = null; state.notice = value.backup.retention && (value.backup.retention.status !== 'ok' || value.backup.retention.pending > 0) ? 'backedUpCleanupWarning' : 'backedUp' }
       })

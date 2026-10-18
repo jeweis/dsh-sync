@@ -9,14 +9,23 @@ import { digest, validateSnapshot, warningsFor, RUNTIME } from './snapshot.mjs'
 const ACTIVE = 'config-vault/active.vault'
 const LOCK = 'config-vault/restore.lock'
 
-export async function preview(snapshot, { home, runtimeVersion = RUNTIME }) {
+export async function preview(snapshot, { home, runtimeVersion = RUNTIME, preserveLocal = false }) {
   validateSnapshot(snapshot)
   const files = []
   for (const file of snapshot.files) {
     const before = await readManaged(home, file.path)
     files.push({ path: file.path, beforeHash: digest(before), afterHash: file.sha256, action: before === file.content ? 'unchanged' : before === null ? 'create' : 'replace' })
   }
-  const warnings = warningsFor(snapshot, runtimeVersion)
+  let warnings = warningsFor(snapshot, runtimeVersion)
+  if (preserveLocal) {
+    const preserved = new Set()
+    for (const warning of warnings.filter(w => w.code === 'local-dependency')) {
+      const before = await readManaged(home, warning.path)
+      const after = snapshot.files.find(f => f.path === warning.path)?.content
+      if (before !== null && after && warning.dependency && Object.hasOwn(JSON.parse(before).dependencies ?? {}, warning.dependency) && JSON.parse(before).dependencies[warning.dependency] === JSON.parse(after).dependencies?.[warning.dependency]) preserved.add(warning)
+    }
+    warnings = warnings.filter(w => !preserved.has(w))
+  }
   const blocked = warnings.some(w => ['runtime-version', 'local-dependency'].includes(w.code))
   const plan = { snapshotId: snapshot.id, home: resolve(home), runtimeVersion, files, warnings, blocked, mode: 'offline-overlay', dependenciesInstalled: false }
   return { ...plan, token: hash(JSON.stringify(plan)) }
@@ -41,12 +50,12 @@ async function lock(home, { recover = false } = {}) {
 }
 
 /** Apply only a reviewed plan. Caller must stop every Harness using this home. */
-export async function restore(snapshot, { home, token, passphrase, offline = false, runtimeVersion = RUNTIME }) {
+export async function restore(snapshot, { home, token, passphrase, offline = false, runtimeVersion = RUNTIME, preserveLocal = false }) {
   if (!offline) throw new Error('Stop all Harness processes using the target home and pass --offline')
   const release = await lock(home)
   try {
     if (await readManaged(home, ACTIVE) !== null) throw new Error('Unfinished restore exists; recover it first')
-    const plan = await preview(snapshot, { home, runtimeVersion })
+    const plan = await preview(snapshot, { home, runtimeVersion, preserveLocal })
     if (plan.blocked) throw new Error('Restore blocked by runtime mismatch or local plugin dependency; migrate manually')
     if (token !== plan.token) throw new Error('Restore plan changed or was not confirmed; preview again')
     const changes = []

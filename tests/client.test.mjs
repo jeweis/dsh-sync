@@ -29,6 +29,7 @@ test('controller retains known state until save acceptance, and secrets never en
     assert.equal(url, init.method === 'GET' ? '/api/dsh-config-vault/state' : '/api/dsh-config-vault')
     if (init.method === 'GET') return response(state())
     submitted = JSON.parse(init.body)
+    if (submitted.action === 'list') return response({ snapshots: [] })
     return await new Promise(resolve => { release = resolve })
   })
   await controller.load()
@@ -149,7 +150,7 @@ test('built settings page saves WebDAV configuration, clears secrets, creates a 
   assert.equal(doc.querySelector('input[type="password"]').value, '')
   const encryptionInput = () => [...doc.querySelectorAll('input[type="password"]')].at(-1)
   await React.act(async () => { Simulate.change(encryptionInput(), { target: { value: 'temporary-encryption-passphrase' } }) })
-  await React.act(async () => { m.byText('button', dictionaries.zh.backup).click(); await waitFor(() => !m.get().busy) })
+  await React.act(async () => { m.byText('button', dictionaries.zh.backupRun).click(); await waitFor(() => !m.get().busy) })
   assert.equal(encryptionInput().value, '')
   assert.equal(m.get().backup.verified, true)
   assert.ok(m.get().backup.files.includes('profiles/headless/package.json'))
@@ -192,9 +193,9 @@ test('unsaved profile or connection edits disable remote operations until saved'
   const doc = m.dom.window.document
   const secret = [...doc.querySelectorAll('input[type="password"]')].at(-1)
   await React.act(async () => { Simulate.change(secret, { target: { value: 'temporary-test-passphrase' } }) })
-  assert.equal(m.byText('button', dictionaries.en.backup).disabled, false)
+  assert.equal(m.byText('button', dictionaries.en.backupRun).disabled, false)
   await React.act(async () => { Simulate.change(doc.querySelector('input[type="url"]'), { target: { value: 'https://changed.invalid/dav/' } }) })
-  assert.equal(m.byText('button', dictionaries.en.backup).disabled, true)
+  assert.equal(m.byText('button', dictionaries.en.backupRun).disabled, true)
   assert.equal(m.byText('button', dictionaries.en.test).disabled, true)
   assert.equal(m.byText('button', dictionaries.en.list).disabled, true)
   assert.match(doc.body.textContent, /Unsaved changes/)
@@ -232,6 +233,7 @@ test('built settings page accepts HTTP and shows its warning for draft and saved
   let submitted
   const m = await mount(t, async (_url, init) => {
     if (init.method === 'GET') return response(state())
+    if (JSON.parse(init.body).action === 'list') return response({ snapshots: [] })
     submitted = JSON.parse(init.body)
     return response({ state: { ...state(), revision: 'revision-http', config: submitted.config } })
   })
@@ -273,8 +275,8 @@ test('settings UI saves automatic and plaintext options, unlocks only in host me
   assert.ok(doc.body.textContent.includes(dictionaries.zh.plaintextWarning))
   await React.act(async () => { Simulate.submit(doc.querySelector('form')); await waitFor(() => !m.get().busy) })
   assert.equal(service.autoPassphrase, null)
-  assert.equal(m.byText('button', dictionaries.zh.backup).disabled, false)
-  await React.act(async () => { m.byText('button', dictionaries.zh.backup).click(); await waitFor(() => !m.get().busy) })
+  assert.equal(m.byText('button', dictionaries.zh.backupRun).disabled, false)
+  await React.act(async () => { m.byText('button', dictionaries.zh.backupRun).click(); await waitFor(() => !m.get().busy) })
   assert.equal(m.get().backup.encryption, false)
   await React.act(async () => { m.byText('button', dictionaries.zh.list).click(); await waitFor(() => !m.get().busy) })
   await React.act(async () => { Simulate.change(doc.querySelector('select'), { target: { value: m.get().snapshots[0] } }) })
@@ -305,10 +307,10 @@ test('settings UI defaults retention to 30, persists a smaller limit and reports
   })
   await React.act(async () => { Simulate.submit(doc.querySelector('form')); await waitFor(() => !m.get().busy) })
   assert.equal(m.get().host.config.keepLast, 1)
-  await React.act(async () => { m.byText('button', dictionaries.zh.backup).click(); await waitFor(() => !m.get().busy) })
+  await React.act(async () => { m.byText('button', dictionaries.zh.backupRun).click(); await waitFor(() => !m.get().busy) })
   assert.equal(m.get().backup.retention.status, 'ok')
   fixture.control.methodStatus.DELETE = 403
-  await React.act(async () => { m.byText('button', dictionaries.zh.backup).click(); await waitFor(() => !m.get().busy) })
+  await React.act(async () => { m.byText('button', dictionaries.zh.backupRun).click(); await waitFor(() => !m.get().busy) })
   assert.equal(m.get().backup.verified, true)
   assert.equal(m.get().notice, 'backedUpCleanupWarning')
   assert.equal(m.get().error, null)
@@ -395,6 +397,7 @@ test('built page offers a separate default-off API key switch and renders masked
   let submitted, current=initial
   const m=await mount(t,async(_url,init)=>{
     if(init.method==='GET')return response(current)
+    if(JSON.parse(init.body).action==='list')return response({snapshots:[]})
     submitted=JSON.parse(init.body)
     if(submitted.action==='save')current={...current,config:submitted.config,revision:'revision-2'}
     if(submitted.action==='sync-resolve')current={...current,sync:{...current.sync,phase:'pending',changes:[],pending:[{...current.sync.changes[0],reason:'reference-manual'}]}}
@@ -485,17 +488,17 @@ test('default settings need no provider setup; advanced disclosure is read-only 
   await React.act(async()=>{Simulate.change(toggle,{target:{checked:true}})})
   assert.ok(doc.body.textContent.includes(dictionaries.zh.syncKeyReceivingHint))
   await React.act(async()=>{Simulate.submit(doc.querySelector('form'));await waitFor(()=>!m.get().busy)})
-  assert.equal(posts.length,1);assert.equal(posts[0].action,'save')
+  assert.deepEqual(posts.map(x=>x.action),['save','list']);assert.equal(posts[0].action,'save')
   assert.equal(posts[0].config.sync.apiKeys,true)
   assert.ok(doc.body.textContent.includes(dictionaries.zh['syncReferenceMode-manual']))
   assert.equal(advanced.open,false)
   await expandProvider(m)
   assert.ok(doc.body.textContent.includes(dictionaries.zh.providerOptional))
   assert.ok(doc.body.textContent.includes(dictionaries.zh.providerCost))
-  assert.equal(posts.length,1)
+  assert.equal(posts.length,2)
   await React.act(async()=>{advanced.open=false;Simulate.toggle(advanced)})
   assert.equal(advanced.open,false)
-  assert.equal(posts.length,1)
+  assert.equal(posts.length,2)
   assert.equal(m.get().host.config.sync.apiKeys,true)
 })
 
@@ -520,7 +523,8 @@ test('task-based page keeps common choices accessible and saves advanced setting
   const details=field(dictionaries.zh[key]).closest('details')
   assert.equal(details.dataset.more,area);assert.equal(details.open,false)
  }
- for(const key of ['autoEnable','keepLast','encryption'])assert.equal(field(dictionaries.zh[key]).closest('details'),null)
+ assert.equal(field(dictionaries.zh.autoEnable).closest('details'),null)
+ for(const key of ['keepLast','encryption'])assert.equal(field(dictionaries.zh[key]).closest('details').dataset.more,'backup')
  assert.equal(field(dictionaries.zh.syncApiKeys).checked,false)
  assert.equal(doc.querySelector('.vault-provider-advanced').closest('[data-task]').dataset.task,'sync')
  for(const [key,value] of [['timeout','45'],['syncSpace','family'],['syncInterval','900000'],['autoDebounce','60'],['autoInterval','10']]){
@@ -531,9 +535,110 @@ test('task-based page keeps common choices accessible and saves advanced setting
  }
  assert.equal(posts.length,0)
  await React.act(async()=>{Simulate.submit(doc.querySelector('form'));await waitFor(()=>!m.get().busy)})
- assert.equal(posts.length,1);assert.equal(posts[0].action,'save')
+ assert.deepEqual(posts.map(x=>x.action),['save','list']);assert.equal(posts[0].action,'save')
  assert.equal(posts[0].config.timeoutMs,45000);assert.equal(posts[0].config.sync.space,'family');assert.equal(posts[0].config.sync.intervalMs,900000)
  assert.equal(posts[0].config.autoBackup.debounceMs,60000);assert.equal(posts[0].config.autoBackup.minIntervalMs,600000)
  assert.equal(posts[0].config.sync.apiKeys,false)
  assert.ok(!posts.some(x=>['restore','provider-switch'].includes(x.action)))
+})
+
+test('new-device recovery guide finds backups, stages encrypted offline confirmation and never posts an online restore',async t=>{
+ const source=await home(t,true),target=await home(t,true),fixture=await dav(t)
+ const {backup}=await import('../src/engine.mjs')
+ const saved=await backup({home:source,remote:fixture.remote,passphrase,profiles:['web']})
+ const service=new VaultSettingsService({home:target,credentials:{describe:async()=>({configured:true,writable:true}),resolve:async()=>({value:'test-password'})},environment:{}})
+ service.connection=async()=>fixture.remote;t.after(()=>service.dispose())
+ const current=await service.state()
+ await service.execute({action:'save',revision:current.revision,config:{...config,url:fixture.options.url,username:'test-user'}})
+ const handler=createSettingsHandler(service),posts=[]
+ const m=await mount(t,async(url,init)=>{if(init.body)posts.push(JSON.parse(init.body));return handler(new Request('http://localhost'+url,init))})
+ const doc=m.dom.window.document
+ const choose=()=>doc.querySelector('.vault-recovery-guide')
+ await React.act(async()=>{Simulate.click(m.byText('button',dictionaries.zh.recoveryStart));await waitFor(()=>!m.get().busy)})
+ assert.equal(m.get().snapshots[0],saved.id)
+ const secret=()=>choose().querySelector('input[type="password"]')
+ await React.act(async()=>{Simulate.change(secret(),{target:{value:passphrase}})})
+ await React.act(async()=>{Simulate.click(m.byText('button',dictionaries.zh.recoveryCheck));await waitFor(()=>!m.get().busy)})
+ assert.equal(m.get().recoveryPlan.blocked,false)
+ assert.ok(doc.body.textContent.includes(dictionaries.zh.recoveryReview))
+ assert.equal(secret(),null)
+ assert.equal(m.byText('button',dictionaries.zh.recoveryStart),undefined)
+ const before=await readFile(join(target,'profiles/web/package.json'),'utf8')
+ await React.act(async()=>{Simulate.click(m.byText('button',dictionaries.zh.recoveryPrepare));await waitFor(()=>!m.get().busy)})
+ assert.ok(m.get().recoveryStage.requestId)
+ assert.equal(secret(),null)
+ assert.ok(choose().textContent.includes('finish-restore'))
+ assert.ok(choose().textContent.includes('--offline'))
+ assert.ok(!choose().textContent.includes('PLAN_TOKEN_FROM_CLI'))
+ assert.ok(!JSON.stringify(m.get()).includes(passphrase))
+ assert.equal(await readFile(join(target,'profiles/web/package.json'),'utf8'),before)
+ assert.deepEqual(posts.map(p=>p.action),['list','recovery-preview','recovery-stage'])
+})
+
+test('new-device cloud receive keeps local-only items and invokes the existing reviewed sync resolution',async t=>{
+ const current=state();current.config.sync={enabled:true,space:'default',categories:['appearance'],intervalMs:180000}
+ const ids=['a'.repeat(64),'b'.repeat(64)]
+ current.sync={phase:'join',token:'c'.repeat(64),profile:'web',pending:[],changes:[
+  {id:ids[0],category:'appearance',label:'ui-theme · preference',local:{},remote:{preference:'dark'}},
+  {id:ids[1],category:'appearance',label:'ui-theme · fontSize',local:{fontSize:16},remote:null},
+ ]}
+ let body
+ const m=await mount(t,async(_url,init)=>{if(init.method==='GET')return response(current);body=JSON.parse(init.body);return response({state:{...current,sync:{phase:'synced',changes:[],pending:[]}}})})
+ const details=m.dom.window.document.querySelector('.vault-sync-change').closest('details')
+ assert.equal(details.open,false)
+ await React.act(async()=>{Simulate.click(m.byText('button',dictionaries.zh.syncReceive));await waitFor(()=>!m.get().busy)})
+ assert.equal(body.action,'sync-resolve');assert.deepEqual(body.choices,{[ids[0]]:'remote',[ids[1]]:'local'})
+ assert.equal(body.token,current.sync.token)
+})
+
+test('compact task tabs preserve drafts, expose one recovery entry and clear recovery secrets when leaving', async t => {
+  const m = await mount(t, async (_url, init) => init.method === 'GET' ? response(state()) : response({ snapshots: [id] }))
+  const doc = m.dom.window.document
+  const tabs = [...doc.querySelectorAll('[role="tab"]')]
+  const visiblePanels = () => [...doc.querySelectorAll('[role="tabpanel"]')].filter(node => !node.hidden)
+  assert.equal(visiblePanels().length, 1)
+  assert.equal(visiblePanels()[0].dataset.task, 'backup')
+  assert.equal(doc.querySelector('[data-more="backup"]').open, false)
+  assert.equal([...doc.querySelectorAll('button')].filter(node => node.textContent === dictionaries.zh.recoveryStart).length, 1)
+  await React.act(async () => { Simulate.click(tabs[0]) })
+  const username = doc.querySelector('[data-task="storage"] input:not([type])')
+  await React.act(async () => { Simulate.change(username, { target: { value: 'edited-user' } }); Simulate.keyDown(tabs[0], { key: 'ArrowRight', preventDefault() {} }) })
+  assert.equal(visiblePanels()[0].dataset.task, 'sync')
+  assert.equal(doc.activeElement.id, 'vault-tab-sync')
+  await React.act(async () => { Simulate.keyDown(tabs[1], { key: 'Home', preventDefault() {} }) })
+  assert.equal(username.value, 'edited-user')
+  assert.equal(m.byText('button', dictionaries.zh.test).disabled, true)
+  // Revert the draft before opening a remote operation.
+  await React.act(async () => { Simulate.change(username, { target: { value: 'demo' } }); Simulate.click(tabs[2]) })
+  await React.act(async () => { Simulate.click(m.byText('button', dictionaries.zh.recoveryStart)); await waitFor(() => !m.get().busy) })
+  assert.equal(m.byText('button', dictionaries.zh.recoveryStart), undefined)
+  const recoverySecret = doc.querySelector('.vault-recovery-guide input[type="password"]')
+  await React.act(async () => { Simulate.change(recoverySecret, { target: { value: 'temporary-guide-secret' } }); Simulate.click(tabs[1]) })
+  await React.act(async () => { Simulate.click(tabs[2]); Simulate.click(m.byText('button', dictionaries.zh.recoveryStart)) })
+  assert.equal(doc.querySelector('.vault-recovery-guide input[type="password"]').value, '')
+  assert.ok(!JSON.stringify(m.get()).includes('temporary-guide-secret'))
+})
+
+test('saving reveals invalid folded fields and keeps the selected task after a successful save', async t => {
+  let current = state(), posts = []
+  const m = await mount(t, async (_url, init) => {
+    if (init.method === 'GET') return response(current)
+    const body = JSON.parse(init.body); posts.push(body.action)
+    if (body.action === 'list') return response({ snapshots: [] })
+    current = { ...current, revision: 'compact-saved', config: body.config }
+    return response({ state: current })
+  })
+  const doc = m.dom.window.document, tabs = [...doc.querySelectorAll('[role="tab"]')]
+  const timeout = doc.querySelector('.vault-timeout input')
+  await React.act(async () => { Simulate.change(timeout, { target: { value: '0' } }); Simulate.click(tabs[1]) })
+  await React.act(async () => { Simulate.submit(doc.querySelector('form')); await new Promise(resolve => setTimeout(resolve, 5)) })
+  assert.deepEqual(posts, [])
+  assert.equal(doc.querySelector('[data-task="storage"]').hidden, false)
+  assert.equal(timeout.closest('details').open, true)
+  await React.act(async () => { Simulate.change(timeout, { target: { value: '45' } }); Simulate.click(tabs[1]) })
+  await React.act(async () => { Simulate.submit(doc.querySelector('form')); await waitFor(() => !m.get().busy) })
+  assert.deepEqual(posts, ['save', 'list'])
+  assert.equal(doc.querySelector('[data-task="sync"]').hidden, false)
+  assert.equal(doc.querySelector('footer').hidden, true)
+  assert.equal(m.get().host.config.timeoutMs, 45000)
 })
