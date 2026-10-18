@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-config-vault
+      name: '@jeweis/dsh-sync'

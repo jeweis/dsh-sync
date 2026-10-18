@@ -1,0 +1,24 @@
+const { Controller } = require('./controller.cjs')
+const { VaultPage } = require('./view.cjs')
+const dictionaries = require('./locales.cjs')
+const namespace = 'dshConfigVault'
+exports.inject = ['slots', 'locale']
+exports.apply = function apply(ctx) {
+  const controller = new Controller()
+  ctx.effect(() => ctx.locale.register(namespace, dictionaries))
+  ctx.effect(() => () => controller.dispose())
+  ctx.effect(() => {
+    const style = document.createElement('style'); style.dataset.plugin = 'dsh-config-vault'
+    style.textContent = `.dsh-vault-page{max-width:900px;margin:0 auto;padding:8px 0 32px;color:var(--dsw-alias-label-primary,inherit);font-size:14px;line-height:1.55}
+.vault-brand{display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0}.vault-brand-icon{flex:none;border-radius:12px;margin-top:1px}.vault-brand h2{margin-top:0}.vault-backup-settings{margin:18px 0}.vault-backup-settings>summary{font-size:13px;font-weight:600}.vault-sync-change{margin:20px 0}.dsh-vault-page *{box-sizing:border-box}.dsh-vault-page h2{font-size:20px;margin:0 0 5px}.dsh-vault-page h3{font-size:15px;margin:0 0 14px}.dsh-vault-page h4{font-size:14px;margin:20px 0 8px}.vault-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.vault-card{border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;padding:22px;margin:18px 0;background:var(--dsw-alias-background-secondary,transparent)}
+.dsh-vault-page fieldset{border:0;margin:0;padding:0;min-width:0}.dsh-vault-page legend{font-weight:600;margin-bottom:8px}.vault-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:13px}.vault-field input,.vault-field select,.vault-field textarea{font:inherit;width:100%;border:1px solid var(--dsw-alias-border-l2,#bbb);background:var(--dsw-alias-background-primary,transparent);color:inherit;border-radius:7px;padding:9px 10px;min-height:38px}.vault-field textarea{resize:vertical;min-height:70px}.vault-field select{overflow:hidden;text-overflow:ellipsis}.vault-field input:focus-visible,.vault-field select:focus-visible,.vault-field textarea:focus-visible,.vault-button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5269df);outline-offset:2px}.vault-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}.vault-check{display:flex;align-items:center;gap:8px;margin:8px 0;min-height:26px}.vault-check input{accent-color:var(--dsw-alias-brand-primary,#5269df)}.vault-profile-choices{margin-top:22px!important}.vault-muted{color:var(--dsw-alias-label-secondary,#757575);font-size:12px;margin:5px 0 12px}.vault-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.vault-button{font:inherit;color:inherit;border:1px solid var(--dsw-alias-border-l2,#bbb);background:transparent;border-radius:7px;padding:8px 13px;min-height:36px;cursor:pointer}.vault-primary{background:var(--dsw-alias-button-primary-fill,#5269df);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:transparent}.vault-button:disabled{opacity:.45;cursor:default}.vault-timeout{max-width:210px;margin-top:16px}.vault-warning{border-left:3px solid #b47c26;padding:8px 12px;background:rgba(180,124,38,.08);overflow-wrap:anywhere}.vault-positive{color:var(--dsw-alias-label-primary,inherit)}.vault-path{display:block;overflow-wrap:anywhere;font-size:12px;margin:5px 0 10px}.vault-commands{font-size:12px;border:1px solid var(--dsw-alias-border-l2,#ddd);padding:12px;border-radius:7px;white-space:pre-wrap;overflow-wrap:anywhere}.vault-table-scroll{overflow:auto;margin:16px 0}.dsh-vault-page table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}.dsh-vault-page th,.dsh-vault-page td{padding:9px;border-bottom:1px solid var(--dsw-alias-border-l2,#ddd)}.dsh-vault-page td code{overflow-wrap:anywhere}.dsh-vault-page summary{cursor:pointer;font-size:12px}@media(max-width:600px){.vault-columns{grid-template-columns:1fr;gap:0}.vault-card{padding:16px}.dsh-vault-page h2{font-size:18px}}`
+    document.head.appendChild(style); return () => style.remove()
+  })
+  const t = ctx.locale.bind(namespace)
+  ctx.slots.inject('settings.section', () => ctx.slots.register({ name: 'settings.section', id: 'dsh-config-vault', order: 70, label: () => t('nav'), locale: namespace,
+    inject: () => ({ hooks: { vault: controller.state }, run: (action, payload) => controller.run(action, payload), reload: () => controller.load() }),
+  }, VaultPage))
+  ctx.on('connection/reset', () => { void controller.load() })
+  void controller.load()
+  controller.startPolling()
+}

@@ -1,0 +1,14 @@
+{
+  "runtime": "0.2.1-rc.2",
+  "plugin": "0.2.2",
+  "installedCli": true,
+  "httpsBackupAndList": true,
+  "offlineRequired": true,
+  "confirmationRequired": true,
+  "existingFilesRestoredExactly": true,
+  "encryptedRollback": true,
+  "rollbackRestoredOriginals": true,
+  "newHomeRestore": true,
+  "newHomeRollback": true,
+  "noActiveJournalOrLock": true
+}

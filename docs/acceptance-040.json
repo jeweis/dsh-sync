@@ -1,0 +1,13 @@
+{
+  "runtime": "0.2.1-rc.2",
+  "plugin": "0.4.0",
+  "defaultKeepLastInUI": 30,
+  "configuredKeepLastInUI": 2,
+  "guiSavedAndReloaded": true,
+  "puts": 4,
+  "conditionalDeletes": 1,
+  "foreignPreserved": true,
+  "remainingOwned": 2,
+  "remainingForeign": 1,
+  "cleanupPending": 0
+}

@@ -1,0 +1,53 @@
+{
+  "node": "v24.20.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "description": "Warm-cache unchanged worker.step only; CPU percentage extrapolates one cycle per 5 seconds, RSS is the whole benchmark process, not incremental Harness memory.",
+  "rows": [
+    {
+      "scenario": "small",
+      "profiles": 1,
+      "files": 3,
+      "sourceKiB": 13.9,
+      "rounds": 100,
+      "wallMeanMs": 0.717,
+      "cpuMeanMs": 0.796,
+      "cpuAtFiveSecondPollPercent": 0.016,
+      "readCallsPerCycle": 8,
+      "readKiBPerCycle": 13.98,
+      "fsyncPerCycle": 0,
+      "observedProcessRssMiB": 75.5,
+      "heapDeltaAfterGcKiB": -56.3
+    },
+    {
+      "scenario": "medium",
+      "profiles": 5,
+      "files": 15,
+      "sourceKiB": 556.6,
+      "rounds": 100,
+      "wallMeanMs": 3.322,
+      "cpuMeanMs": 4.06,
+      "cpuAtFiveSecondPollPercent": 0.081,
+      "readCallsPerCycle": 32,
+      "readKiBPerCycle": 556.66,
+      "fsyncPerCycle": 0,
+      "observedProcessRssMiB": 170.9,
+      "heapDeltaAfterGcKiB": -1610.1
+    },
+    {
+      "scenario": "large",
+      "profiles": 10,
+      "files": 30,
+      "sourceKiB": 2235.2,
+      "rounds": 100,
+      "wallMeanMs": 7.783,
+      "cpuMeanMs": 8.927,
+      "cpuAtFiveSecondPollPercent": 0.179,
+      "readCallsPerCycle": 62,
+      "readKiBPerCycle": 2235.27,
+      "fsyncPerCycle": 0,
+      "observedProcessRssMiB": 353.6,
+      "heapDeltaAfterGcKiB": 1.3
+    }
+  ]
+}

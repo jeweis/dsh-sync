@@ -1,0 +1,50 @@
+{
+  "node": "v24.20.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "description": "Warm-cache unchanged worker.step only; CPU percentage extrapolates one cycle per 5 seconds, RSS is the whole benchmark process, not incremental Harness memory.",
+  "rows": [
+    {
+      "scenario": "small",
+      "profiles": 1,
+      "files": 3,
+      "sourceKiB": 13.9,
+      "rounds": 10,
+      "wallMeanMs": 9.092,
+      "cpuMeanMs": 9.837,
+      "cpuAtFiveSecondPollPercent": 0.197,
+      "readCallsPerCycle": 16,
+      "readKiBPerCycle": 27.92,
+      "fsyncPerCycle": 1,
+      "observedProcessRssMiB": 84.1
+    },
+    {
+      "scenario": "medium",
+      "profiles": 5,
+      "files": 15,
+      "sourceKiB": 556.6,
+      "rounds": 5,
+      "wallMeanMs": 168.995,
+      "cpuMeanMs": 187.377,
+      "cpuAtFiveSecondPollPercent": 3.748,
+      "readCallsPerCycle": 64,
+      "readKiBPerCycle": 1113.29,
+      "fsyncPerCycle": 1,
+      "observedProcessRssMiB": 248.7
+    },
+    {
+      "scenario": "large",
+      "profiles": 10,
+      "files": 30,
+      "sourceKiB": 2235.2,
+      "rounds": 3,
+      "wallMeanMs": 916.905,
+      "cpuMeanMs": 1011.207,
+      "cpuAtFiveSecondPollPercent": 20.224,
+      "readCallsPerCycle": 124,
+      "readKiBPerCycle": 4470.5,
+      "fsyncPerCycle": 1,
+      "observedProcessRssMiB": 341.7
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "runtime": "0.2.1-rc.2",
+  "plugin": "0.2.2",
+  "settingsPersistence": true,
+  "httpsWebdavBackupVerified": true,
+  "snapshotId": "2026-10-17T17-24-37-463Z_be7fa464-0a24-4cb5-ae76-542da6b593cc",
+  "previewReadOnly": true,
+  "wrongPassphraseRejectedInUI": true,
+  "localDependencyBlocked": true,
+  "noRestoreJournal": true,
+  "secretsExcludedFromSettings": true,
+  "installedCodeMatches": true,
+  "webdavRequests": {
+    "MKCOL": 2,
+    "PUT": 1,
+    "GET": 4,
+    "PROPFIND": 3,
+    "rejected": 0,
+    "objects": [
+      "/acceptance/snapshots/2026-10-17T17-24-37-463Z_be7fa464-0a24-4cb5-ae76-542da6b593cc.vault"
+    ]
+  },
+  "offlineCliPreview": true,
+  "unauthenticatedSettingsStatus": 401
+}
