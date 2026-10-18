@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-18",
+  "package": "@jeweis/dsh-sync",
+  "version": "0.10.0",
+  "runtime": "0.2.1-rc.2",
+  "artifact": "local-npm-tarball",
+  "tests": {
+    "passed": 124,
+    "failed": 0,
+    "syntaxCheck": true,
+    "packDryRun": true
+  },
+  "client": {
+    "clientMatchesInstalled": true,
+    "bytes": 89669,
+    "sha256": "d11d13af9a55cfbb577d46fed36bd9e3ea1c7852dd980f0028e2c84b3aa08482"
+  },
+  "checks": {
+    "threeTaskSections": true,
+    "advancedSettingsCollapsed": true,
+    "saveSettings": true,
+    "apiKeyDefaultOff": true,
+    "providerGuideAccessible": true,
+    "encryptedBackupVerified": true,
+    "backupList": true,
+    "restoreReplacementPreview": true,
+    "previewReadOnly": true,
+    "previewFileHash": "5630a8182268d9a9a29ae8f063ad0e54802b9a22e7ed70287d32b0a38fc41e34",
+    "offlineConfirmationInstructions": true,
+    "firstSyncReview": true,
+    "firstSyncConfirmed": true,
+    "connectionReadable": true
+  },
+  "isolation": {
+    "temporaryHomes": true,
+    "localFakeWebdav": true,
+    "realProfileTouched": false,
+    "upstreamSourceModified": false,
+    "upstreamHead": "1517a4dbca",
+    "cleanupCompleted": true
+  },
+  "limits": [
+    "No real provider keys or remote storage used",
+    "No online restore or provider switch performed",
+    "Two-device conflict and API Key protection covered by automated regression tests"
+  ],
+  "published": false
+}

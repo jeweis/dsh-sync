@@ -1,6 +1,6 @@
 {
   "name": "@jeweis/dsh-sync",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Cross-device sync, encrypted backups and offline recovery for DeepSeek Harness",
   "type": "module",
   "license": "MIT",

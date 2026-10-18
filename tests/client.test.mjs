@@ -334,7 +334,7 @@ test('built page renders safe failure stage and HTTP status, distinguishes no up
   reply = response({ error: 'operation-failed', diagnostic: { stage: 'upload', reason: 'http', status: 507, remoteMayExist: true } }, 502)
   await React.act(async () => { await m.face.run('backup') })
   assert.equal(m.get().notice, 'backupUnknown')
-  assert.match(doc.querySelector('[role="alert"]').textContent, /上传快照（PUT）.*HTTP 507/)
+  assert.match(doc.querySelector('[role="alert"]').textContent, /上传备份（PUT）.*HTTP 507/)
   reply = response({ error: 'operation-failed', diagnostic: { stage: 'private-url', reason: 'http', status: 403 } }, 502)
   await React.act(async () => { await m.face.run('backup') })
   assert.equal(m.get().diagnostic, null)
@@ -497,4 +497,43 @@ test('default settings need no provider setup; advanced disclosure is read-only 
   assert.equal(advanced.open,false)
   assert.equal(posts.length,1)
   assert.equal(m.get().host.config.sync.apiKeys,true)
+})
+
+
+test('task-based page keeps common choices accessible and saves advanced settings without enabling key sync or switching credentials',async t=>{
+ let current=state(),posts=[]
+ current.config.sync={enabled:true,apiKeys:false,space:'default',categories:['appearance'],intervalMs:180000}
+ current.config.autoBackup={enabled:true,debounceMs:30000,minIntervalMs:300000}
+ current.auto={phase:'locked'}
+ current.sync={phase:'locked',referenceMode:'manual',profile:'web',changes:[],pending:[]}
+ const m=await mount(t,async(_url,init)=>{
+  if(init.method==='GET')return response(current)
+  const body=JSON.parse(init.body);posts.push(body)
+  if(body.action==='save')current={...current,revision:'task-layout-saved',config:body.config}
+  return response({state:current})
+ })
+ const doc=m.dom.window.document
+ assert.deepEqual([...doc.querySelectorAll('[data-task]')].map(x=>x.dataset.task),['storage','sync','backup'])
+ assert.deepEqual([...doc.querySelectorAll('[data-task]>.vault-section-heading h3')].map(x=>x.textContent),['连接存储','同步到其他设备','备份与恢复'])
+ const field=text=>[...doc.querySelectorAll('label')].find(x=>x.firstChild?.textContent===text||x.textContent===text)?.querySelector('input,select')
+ for(const [key,area] of [['timeout','storage'],['syncSpace','sync'],['syncInterval','sync'],['autoDebounce','backup'],['autoInterval','backup']]){
+  const details=field(dictionaries.zh[key]).closest('details')
+  assert.equal(details.dataset.more,area);assert.equal(details.open,false)
+ }
+ for(const key of ['autoEnable','keepLast','encryption'])assert.equal(field(dictionaries.zh[key]).closest('details'),null)
+ assert.equal(field(dictionaries.zh.syncApiKeys).checked,false)
+ assert.equal(doc.querySelector('.vault-provider-advanced').closest('[data-task]').dataset.task,'sync')
+ for(const [key,value] of [['timeout','45'],['syncSpace','family'],['syncInterval','900000'],['autoDebounce','60'],['autoInterval','10']]){
+  await React.act(async()=>{
+   const input=field(dictionaries.zh[key]);input.closest('details').open=true
+   Simulate.change(input,{target:{value}})
+  })
+ }
+ assert.equal(posts.length,0)
+ await React.act(async()=>{Simulate.submit(doc.querySelector('form'));await waitFor(()=>!m.get().busy)})
+ assert.equal(posts.length,1);assert.equal(posts[0].action,'save')
+ assert.equal(posts[0].config.timeoutMs,45000);assert.equal(posts[0].config.sync.space,'family');assert.equal(posts[0].config.sync.intervalMs,900000)
+ assert.equal(posts[0].config.autoBackup.debounceMs,60000);assert.equal(posts[0].config.autoBackup.minIntervalMs,600000)
+ assert.equal(posts[0].config.sync.apiKeys,false)
+ assert.ok(!posts.some(x=>['restore','provider-switch'].includes(x.action)))
 })
