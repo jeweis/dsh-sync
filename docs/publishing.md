@@ -44,3 +44,13 @@ PR 仅执行测试、检查和打包预检。main push 或 main 手动运行先�
 若出现 `ENEEDAUTH`，先核对上述五项信任字段、Allow npm publish、工作流实际运行位置和 npm CLI 版本，不重新复制 Token。2FA、scope 或包权限问题以 npm 错误提示和账号策略为准。
 
 参考：[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)、[GitHub npm 发布](https://docs.github.com/en/actions/tutorials/publish-packages/publish-nodejs-packages)。
+
+## 0.11.0 自动发布验证
+
+2026-10-18，提交 [`d78a2b2`](https://github.com/jeweis/dsh-sync/commit/d78a2b22019ff40be924e02eda91c345ab0017b8) 推送 main 后，通过 [GitHub Actions 39119761149](https://github.com/jeweis/dsh-sync/actions/runs/39119761149) 自动发布 `@jeweis/dsh-sync@0.11.0`。verify 与 publish 均成功：135 项测试、语法检查和打包预检通过，实际执行 `npm publish --access public --provenance`，没有使用 npm 长期写令牌。
+
+发布后通过 npm 官方 registry 确认：精确版本及 `latest` 均为 `0.11.0`，`gitHead` 指向上述提交；实际下载 tarball 并验证 `dist.integrity` 的 SHA-512，客户端、CLI、恢复模块、图标和 bundle patch 与本地构建一致。客户端 SHA-256 为 `f53229cb49ca5d1e9023ff7c12f885b0077ff8f523dd7993cb90f62fb0002027`。
+
+npm 返回 SLSA v1 provenance，发布日志确认 GitHub Actions 签名并写入 [Sigstore 透明日志](https://search.sigstore.dev/?logIndex=3310041339)。[npm 版本页面](https://www.npmjs.com/package/@jeweis/dsh-sync/v/0.11.0)。首次发布查询存在短暂传播延迟，等待后完成核验，未重复发布或修改版本。
+
+本次只发布插件仓库；真实 Harness profile 与参考源码均未改动。隔离环境的页面、备份、同步及离线恢复验收见 [功能验收](acceptance-011.md) 与 [设置页精简验收](settings-simplification.md)。此记录作为后续同版本文档提交，不应重新发布或覆盖 npm 已有版本。
