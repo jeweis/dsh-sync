@@ -174,3 +174,7 @@ node src/cli.mjs recover --home /path/to/target-dsh-home --rollback TRANSACTION_
 默认直接使用现有 Harness 凭据服务，配置同步、备份及 Key 加密上传无需切换服务或退出。API Key 同步单独开关，默认关闭；普通凭据服务下，引用型 Key 接收提示用户到 Harness 原生界面配置后重新核对，插件不会代写。受支持的 Key 记录仍可自动双向同步。
 
 设置页“高级：引用型 API Key 自动接收（可选）”默认折叠，只有需要增强能力时才展开；展开不会请求预览或更改配置。扩展能力可用时，折叠标题仍保留状态提示；关闭折叠或关闭 Key 同步都不会卸载凭据服务。内含的接入与回退引导可发现并预览本 home 全部标准 profile 的变更，生成离线重新预览、确认切换和安全回退命令。无需手写受支持的 YAML；网页只读，实际切换要求新 token、加密日志口令、`--offline` 和 `--all-writers-stopped`。回退通过 Harness 凭据服务保留接入后更新的 Key，并支持中断恢复。详见 [接入引导](docs/provider-onboarding.md) 与 [0.8.0 验收](docs/acceptance-080.md)。本轮仅在隔离 profile 验证。默认流程简化与验证结果见 [0.8.1 验收](docs/acceptance-081.md)。
+
+## main 自动发布 npm
+
+推送 main 后，GitHub Actions 先测试、检查并构建，再发布尚未发布的稳定版本到 npm；同版本会跳过。需要先设置 npm 发布授权，GitHub 推送本身不会上传 npm。首次 token 配置和后续 OIDC 接入见 [自动发布说明](docs/publishing.md)。

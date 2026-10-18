@@ -1,0 +1,63 @@
+name: Verify and publish
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run check
+      - run: npm pack --dry-run
+
+  publish:
+    needs: verify
+    if: github.repository == 'jeweis/dsh-sync' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # OIDC requires npm >= 11.5.1. Keep a compatible CLI independently of runner images.
+      - run: npm install --global npm@11
+      - name: Check whether this version is already published
+        id: version
+        run: node scripts/publish-check.mjs
+      - if: steps.version.outputs.publish == 'true'
+        run: npm ci --ignore-scripts
+      - name: Publish new version
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish --access public --provenance
+        env:
+          # Optional bootstrap credential. With a configured npm trusted publisher, OIDC is used.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

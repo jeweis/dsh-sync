@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/operation-error.mjs && node --check src/auto-backup.mjs && node --check src/retention.mjs && node --check src/engine.mjs && node --check src/restore.mjs && node --check src/snapshot.mjs && node --check src/webdav.mjs && node --check src/crypto.mjs && node --check src/files.mjs && node --check src/settings.mjs && node --check src/ui-service.mjs && node --check scripts/build.mjs && node --check lib/client.js && node --check src/sync-credentials.mjs && node --check src/sync.mjs && node --check src/sync-adapter.mjs && node --check src/sync-remote.mjs && node --check src/sync-lock.mjs && node --check src/client/sync-view.cjs && node --check scripts/acceptance/sync.mjs && node --check scripts/preview-sync.mjs && node --check src/credential-cas.mjs && node --check src/atomic-credentials.mjs && node --check src/provider-transition.mjs && node --check src/client/provider-view.cjs && node --check scripts/acceptance/provider-switch.mjs && node --check scripts/preview-provider.mjs",
+    "check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/operation-error.mjs && node --check src/auto-backup.mjs && node --check src/retention.mjs && node --check src/engine.mjs && node --check src/restore.mjs && node --check src/snapshot.mjs && node --check src/webdav.mjs && node --check src/crypto.mjs && node --check src/files.mjs && node --check src/settings.mjs && node --check src/ui-service.mjs && node --check scripts/build.mjs && node --check lib/client.js && node --check src/sync-credentials.mjs && node --check src/sync.mjs && node --check src/sync-adapter.mjs && node --check src/sync-remote.mjs && node --check src/sync-lock.mjs && node --check src/client/sync-view.cjs && node --check scripts/acceptance/sync.mjs && node --check scripts/preview-sync.mjs && node --check src/credential-cas.mjs && node --check src/atomic-credentials.mjs && node --check src/provider-transition.mjs && node --check src/client/provider-view.cjs && node --check scripts/acceptance/provider-switch.mjs && node --check scripts/preview-provider.mjs && node --check scripts/publish-check.mjs",
     "build": "node scripts/build.mjs",
     "pretest": "npm run build",
     "prepack": "npm run build",
@@ -95,6 +95,15 @@
   },
   "icon": "./assets/icon.svg",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeweis/dsh-sync.git"
+  },
+  "homepage": "https://github.com/jeweis/dsh-sync#readme",
+  "bugs": {
+    "url": "https://github.com/jeweis/dsh-sync/issues"
   }
 }
