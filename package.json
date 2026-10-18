@@ -18,8 +18,8 @@
     "./credentials-provider": "./src/atomic-credentials.mjs"
   },
   "bin": {
-    "dsh-sync": "./src/cli.mjs",
-    "dsh-config-vault": "./src/cli.mjs"
+    "dsh-sync": "src/cli.mjs",
+    "dsh-config-vault": "src/cli.mjs"
   },
   "files": [
     "src",
